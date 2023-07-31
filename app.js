@@ -1,35 +1,41 @@
-/**
- * @file app.js
- * The starting point of the application.
- * Express allows us to configure our app and use
- * dependency injection to add it to the http server.
- *
- * The server-side app starts and begins listening for events.
- *
- *  @requires config
- *  @requires express
- **/
-const config = require('config')
-const express = require('express')
-const app = express() // create an Express web app
+var createError = require('http-errors');
+var express = require('express');
+var path = require('path');
+var cookieParser = require('cookie-parser');
+var logger = require('morgan');
 
-// Use hosting values if available, otherwise default
-const environment = process.env.NODE_ENV || 'development'
-const hostname = process.env.HOSTNAME || config.get('hostname')
-const port = process.env.PORT || config.get('port')
+var indexRouter = require('./routes/index');
+var usersRouter = require('./routes/users');
 
-// By default, Express does not serve static files.
-// use middleware to define a static assets folder 'public'
-app.use(express.static('public'))
+var app = express();
 
-// load seed data
-require('./utils/seeder.js')(app)
+// view engine setup
+app.set('views', path.join(__dirname, 'views'));
+app.set('view engine', 'jade');
 
-// Use Express middleware to configure routing
-const routing = require('./routes/router.js')
-app.use('/', routing)
+app.use(logger('dev'));
+app.use(express.json());
+app.use(express.urlencoded({ extended: false }));
+app.use(cookieParser());
+app.use(express.static(path.join(__dirname, 'public')));
 
-app.listen(port, hostname, () => {
-  console.log(`App running at http://${hostname}:${port}/ in ${environment}`)
-  console.log('Hit CTRL-C CTRL-C to stop\n')
-})
+app.use('/', indexRouter);
+app.use('/users', usersRouter);
+
+// catch 404 and forward to error handler
+app.use(function(req, res, next) {
+  next(createError(404));
+});
+
+// error handler
+app.use(function(err, req, res, next) {
+  // set locals, only providing error in development
+  res.locals.message = err.message;
+  res.locals.error = req.app.get('env') === 'development' ? err : {};
+
+  // render the error page
+  res.status(err.status || 500);
+  res.render('error');
+});
+
+module.exports = app;
